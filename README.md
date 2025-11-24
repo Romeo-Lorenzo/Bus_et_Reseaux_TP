@@ -98,11 +98,9 @@ BMP2_U32_t bmp280_compensate_P_int64(BMP2_S32_t adc_P)
 ### 2.2. Setup du STM32
 - Configuration CubeMX (I2C1 sur broches PB8 et PB9)
 - Ecriture d'un Driver I2C pour BMP280:
-
-<span style="color:#666; font-size:0.9em;">Extrait verbatim du datasheet Bosch (page 45-46) – version sans float, parfaite pour STM32</span>
-
-<div style="background:#1e1e1e; padding:1px; border-radius:8px; border:1px solid #404040; margin:20px 0">
+   
 ```c
+
 caca
 
 ```
@@ -111,10 +109,7 @@ caca
 ### 2.3. Communication I²C
 - Écriture/lecture simple d’un registre
 Lecture du registre id: 0xD0
-
-<span style="color:#666; font-size:0.9em;">Extrait verbatim du datasheet Bosch (page 45-46) – version sans float, parfaite pour STM32</span>
-
-<div style="background:#1e1e1e; padding:1px; border-radius:8px; border:1px solid #404040; margin:20px 0">
+   
 ```c
 
   uint8_t result;
@@ -139,6 +134,7 @@ HAL_StatusTypeDef bmp280_read_regs(BMP280_HandleTypeDef *dev,uint8_t reg,uint8_t
     status = HAL_I2C_Master_Receive(&hi2c1,(BMP280_I2C_ADDR_SDO_HIGH << 1),pData,size,HAL_MAX_DELAY);
     return status;
 }
+
 ```
 
 On obtient alors le resultat suivant:
@@ -148,10 +144,8 @@ On obtient alors le resultat suivant:
 - On envois maintenant la config au barometre donc oversamplig x2 de la temperature, oversampling x16 de la pression et mode normal.
   Pour cela nous allons lire puis ecrire une valeurs precise dans le registre 0xF4, on y applique les masque afin d'obtenir les bonnes valeurs oversampling et de mode de fonctionne en accord avec la datasheet. Puis pour lire les registre de calibration, on lit 24 octet, et on concatene certain de ces registres ensemble afin de former les valeurs de calibration finales en int16_t ou uint16_t.
 
-<span style="color:#666; font-size:0.9em;">Extrait verbatim du datasheet Bosch (page 45-46) – version sans float, parfaite pour STM32</span>
-
-<div style="background:#1e1e1e; padding:1px; border-radius:8px; border:1px solid #404040; margin:20px 0">
 ```c
+   
 #define BMP280_MODE_NORMAL        0x03u
 #define BMP280_OSRS_P_x16         (5u << 2)
 #define BMP280_OSRS_T_x2          (2u << 5)
