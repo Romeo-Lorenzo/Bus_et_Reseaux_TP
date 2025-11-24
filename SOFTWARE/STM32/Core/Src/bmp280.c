@@ -1,27 +1,26 @@
 #include "bmp280.h"
-
+#include "i2c.h"
 /* ==== Helpers I2C - uniquement Master_Transmit / Master_Receive ==== */
 
 HAL_StatusTypeDef bmp280_write_reg(BMP280_HandleTypeDef *dev,uint8_t reg,uint8_t value)
 {
     uint8_t buf[2] = { reg, value };
-    return HAL_I2C_Master_Transmit(dev->hi2c,(BMP280_I2C_ADDR_SDO_HIGH << 1),buf,2,HAL_MAX_DELAY);
+    return HAL_I2C_Master_Transmit(&hi2c1,(BMP280_I2C_ADDR_SDO_HIGH << 1),buf,2,HAL_MAX_DELAY);
 }
 
 HAL_StatusTypeDef bmp280_read_regs(BMP280_HandleTypeDef *dev,uint8_t reg,uint8_t *pData,uint16_t size)
 {
     HAL_StatusTypeDef status;
-    status = HAL_I2C_Master_Transmit(dev->hi2c,(BMP280_I2C_ADDR_SDO_HIGH << 1),&reg,1,HAL_MAX_DELAY);
+    status = HAL_I2C_Master_Transmit(&hi2c1,(BMP280_I2C_ADDR_SDO_HIGH << 1),&reg,1,HAL_MAX_DELAY);
     if (status != HAL_OK){
         return status;
     }
-    status = HAL_I2C_Master_Receive(dev->hi2c,(BMP280_I2C_ADDR_SDO_HIGH << 1),pData,size,HAL_MAX_DELAY);
+    status = HAL_I2C_Master_Receive(&hi2c1,(BMP280_I2C_ADDR_SDO_HIGH << 1),pData,size,HAL_MAX_DELAY);
     return status;
 }
 
-/* ==== Lecture des coefficients d'étalonnage ==== */
 
-static HAL_StatusTypeDef bmp280_read_calibration(BMP280_HandleTypeDef *dev)
+HAL_StatusTypeDef bmp280_read_calibration(BMP280_HandleTypeDef *dev)
 {
     uint8_t calib[BMP280_CALIB_LENGTH];
     HAL_StatusTypeDef status;
@@ -67,26 +66,20 @@ HAL_StatusTypeDef BMP280_Init(BMP280_HandleTypeDef *dev)
 
     HAL_Delay(5);
 
+    uint8_t ctrl_meas = BMP280_OSRS_T_x2 | BMP280_OSRS_P_x16 | BMP280_MODE_NORMAL;
+    status = bmp280_write_reg(dev, BMP280_REG_CTRL_MEAS, ctrl_meas);
+    if (status != HAL_OK) return status;
+
 
     status = bmp280_read_calibration(dev);
     if (status != HAL_OK) return status;
 
 
-    uint8_t config = BMP280_T_SB_250_MS | BMP280_FILTER_4 | BMP280_SPI3W_DISABLE;
-    status = bmp280_write_reg(dev, BMP280_REG_CONFIG, config);
-    if (status != HAL_OK) return status;
-
-    /* 5) ctrl_meas: oversampling T, P + mode normal */
-    uint8_t ctrl_meas = BMP280_OSRS_T_x2 | BMP280_OSRS_P_x16 | BMP280_MODE_NORMAL;
-    status = bmp280_write_reg(dev, BMP280_REG_CTRL_MEAS, ctrl_meas);
-    if (status != HAL_OK) return status;
-
     return HAL_OK;
 }
 
-/* Lecture brute des 3 octets T et 3 octets P,
-   format 20 bits: adc = (MSB<<12) | (LSB<<4) | (XLSB>>4) */
-HAL_StatusTypeDef BMP280_ReadRaw(BMP280_HandleTypeDef *dev, int32_t *raw_temp, int32_t *raw_press)
+
+HAL_StatusTypeDef BMP280_ReadRaw(BMP280_HandleTypeDef *dev)
 {
     uint8_t data[6];
     HAL_StatusTypeDef status;
@@ -97,35 +90,25 @@ HAL_StatusTypeDef BMP280_ReadRaw(BMP280_HandleTypeDef *dev, int32_t *raw_temp, i
     int32_t adc_P = ((int32_t)data[0] << 12) | ((int32_t)data[1] << 4) | ((int32_t)data[2] >> 4);
     int32_t adc_T = ((int32_t)data[3] << 12) | ((int32_t)data[4] << 4) | ((int32_t)data[5] >> 4);
 
-    *raw_press = adc_P;
-    *raw_temp  = adc_T;
+    dev->raw_press = adc_P;
+    dev->raw_temp  = adc_T;
 
     return HAL_OK;
 }
 
-/* ==== Compensation température / pression (version int32) ==== */
-/* Copié/adapté de la datasheet BMP280 (Appendix), format 0.01 °C */
-
-int32_t BMP280_Compensate_T_int32(BMP280_HandleTypeDef *dev, int32_t adc_T)
+void BMP280_Compensate_T_int32(BMP280_HandleTypeDef *dev)
 {
-    int32_t var1, var2, T;
+    int32_t var1, var2;
     BMP280_CalibData *c = &dev->calib;
 
-    var1 = ((((adc_T >> 3) - ((int32_t)c->dig_T1 << 1))) * ((int32_t)c->dig_T2)) >> 11;
-    var2 = (((((adc_T >> 4) - ((int32_t)c->dig_T1)) *
-              ((adc_T >> 4) - ((int32_t)c->dig_T1))) >> 12) *
-            ((int32_t)c->dig_T3)) >> 14;
-
+    var1 = ((((dev->raw_temp >> 3) - ((int32_t)c->dig_T1 << 1))) * ((int32_t)c->dig_T2)) >> 11;
+    var2 = (((((dev->raw_temp >> 4) - ((int32_t)c->dig_T1)) *((dev->raw_temp >> 4) - ((int32_t)c->dig_T1))) >> 12) *
+    		((int32_t)c->dig_T3)) >> 14;
     c->t_fine = var1 + var2;
-    T = (c->t_fine * 5 + 128) >> 8;  /* 0.01 °C */
-
-    return T;
+    dev->cal_temp = (c->t_fine * 5 + 128) >> 8;  /* 0.01 °C */
 }
 
-/* Pression en Pa (selon référence Bosch en int32/uint32).
-   Résultat typique: Q24.8 (donc /256 pour avoir Pa).
-*/
-uint32_t BMP280_Compensate_P_uint32(BMP280_HandleTypeDef *dev, int32_t adc_P)
+void BMP280_Compensate_P_uint32(BMP280_HandleTypeDef *dev)
 {
     BMP280_CalibData *c = &dev->calib;
     int32_t var1, var2;
@@ -140,10 +123,10 @@ uint32_t BMP280_Compensate_P_uint32(BMP280_HandleTypeDef *dev, int32_t adc_P)
     var1 = (((32768 + var1)) * (int32_t)c->dig_P1) >> 15;
     if (var1 == 0)
     {
-        return 0; /* Avoid division by zero */
+        return 0;
     }
 
-    p = ((uint32_t)(((int32_t)1048576) - adc_P) - (var2 >> 12)) * 3125U;
+    p = ((uint32_t)(((int32_t)1048576) - dev->raw_press) - (var2 >> 12)) * 3125U;
 
     if (p < 0x80000000UL)
     {
@@ -158,7 +141,7 @@ uint32_t BMP280_Compensate_P_uint32(BMP280_HandleTypeDef *dev, int32_t adc_P)
     var2 = ((int32_t)(p >> 2) * (int32_t)c->dig_P8) >> 13;
     p = (uint32_t)((int32_t)p + ((var1 + var2 + c->dig_P7) >> 4));
 
-    return p; /* Pa (approx /256 en interne, cf. Bosch) */
+    dev->cal_press=p;
 }
 
 

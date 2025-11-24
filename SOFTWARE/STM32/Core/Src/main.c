@@ -107,13 +107,21 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   HAL_Delay(10);
-  bmp280.hi2c=&hi2c1;
-  uint8_t result[10];
 
-  bmp280_read_regs(&bmp280,BMP280_REG_CHIP_ID,(uint8_t *) result,1);
+  uint8_t result;
+
+  bmp280_read_regs(&bmp280,BMP280_REG_CHIP_ID,&result,1);
+  printf("id est %x\n\r",result);
 
 
-  //BMP280_Init(&bmp280);
+
+  bmp280_read_calibration(&bmp280);
+
+
+
+  BMP280_Init(&bmp280);
+
+
 
   /* USER CODE END 2 */
 

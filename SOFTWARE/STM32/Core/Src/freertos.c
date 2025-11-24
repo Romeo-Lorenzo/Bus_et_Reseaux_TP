@@ -52,7 +52,9 @@ osThreadId sensortaskHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
+#include "bmp280.h"
 
+extern BMP280_HandleTypeDef bmp280;
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void const * argument);
@@ -130,7 +132,9 @@ void StartDefaultTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-	  printf("test\n\r");
+	  BMP280_ReadRaw(&bmp280);
+	  BMP280_Compensate_T_int32(&bmp280);
+	  BMP280_Compensate_P_uint32(&bmp280);
 	  HAL_GPIO_TogglePin(GPIOA,GPIO_PIN_5);
     osDelay(100);
   }
