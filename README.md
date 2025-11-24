@@ -183,7 +183,10 @@ HAL_StatusTypeDef bmp280_read_calibration(BMP280_HandleTypeDef *dev)
 ```
 On obtient alors le resultat suivant pour ce qui est des registres de calibration:
 
-- Maintenant nous allons faire la mesure de la temperature raw et de la pression raw et y appliquer es calibrations.
+<img width="591" height="466" alt="image" src="https://github.com/user-attachments/assets/16fafa58-c15e-48a8-81b8-2e3c7c91276e" />
+
+
+- Maintenant nous allons faire la mesure de la temperature raw et de la pression raw et y appliquer les calibrations.
 
 
 - Affichage des résultats sur UART (bonus : moniteur série)
