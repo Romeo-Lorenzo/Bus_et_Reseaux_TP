@@ -27,9 +27,77 @@ Matériel utilisé :
 ## 2. TP 1 – Bus I²C
 
 ### 2.1. Capteur BMP280
-- Présentation du capteur (adresse I²C, registres utiles)
-- Schéma de câblage
-- Datasheet résumé (table des registres de calibration)
+<img width="1092" height="431" alt="image" src="https://github.com/user-attachments/assets/71b65e79-b292-4c0e-81ea-42b388d55e30">
+
+1. les adresses I²C possibles pour ce composant.
+   
+  0x76 (SDO -> GND) ou 0x77 (SDO -> VDDIO) (cf.p24)
+   
+2. le registre et la valeur permettant d'identifier ce composant
+   
+  le registre chip_id se trouve en 0xD0 et sa valeur de reset est 0x58 (cf. register map)
+   
+3. le registre et la valeur permettant de placer le composant en mode normal
+
+  le registre 0xF4, il faut mettre le bit 0 et 1 à 1 (cf.p15)
+
+4. les registres contenant l'étalonnage du composant
+   
+  registres 0x9E -> 0x88 (cf. p21)
+
+5. les registres contenant la température (ainsi que le format)
+   
+  température sur 20bits: 8bits de 0xFA (MSB), 8bits de 0xFB (LSB), 7:4 du registre 0xFC (XLSB) (p.24)
+
+6. les registres contenant la pression (ainsi que le format)
+    
+  pression sur 20bit: MSB sur 0xF7, LSB sur 0xF8, et XLSB sur 7:4 de 0xF9 (cf. p24)
+
+7. les fonctions permettant le calcul de la température et de la pression compensées, en format entier 32 bits.
+
+<span style="color:#666; font-size:0.9em;">Extrait verbatim du datasheet Bosch (page 45-46) – version sans float, parfaite pour STM32</span>
+
+<div style="background:#1e1e1e; padding:1px; border-radius:8px; border:1px solid #404040; margin:20px 0">
+
+```c
+// Returns temperature in DegC, resolution is 0.01 DegC. Output value of “5123” equals 51.23 DegC.
+// t_fine carries fine temperature as global value
+BMP2_S32_t t_fine;
+BMP2_S32_t bmp280_compensate_T_int32(BMP2_S32_t adc_T)
+{
+    BMP2_S32_t var1, var2, T;
+    var1 = ((((adc_T>>3) - ((BMP2_S32_t)dig_T1<<1))) * ((BMP2_S32_t)dig_T2)) >> 11;
+    var2 = (((((adc_T>>4) - ((BMP2_S32_t)dig_T1)) * ((adc_T>>4) - ((BMP2_S32_t)dig_T1))) >> 12) *
+           ((BMP2_S32_t)dig_T3)) >> 14;
+    t_fine = var1 + var2;
+    T = (t_fine * 5 + 128) >> 8;
+    return T;
+}
+
+// Returns pressure in Pa as unsigned 32 bit integer in Q24.8 format (24 integer bits and 8 fractional bits).
+// Output value of “24674867” represents 24674867/256 = 96386.2 Pa = 963.862 hPa
+BMP2_U32_t bmp280_compensate_P_int64(BMP2_S32_t adc_P)
+{
+    BMP2_S64_t var1, var2, p;
+    var1 = ((BMP2_S64_t)t_fine) - 128000;
+    var2 = var1 * var1 * (BMP2_S64_t)dig_P6;
+    var2 = var2 + ((var1*(BMP2_S64_t)dig_P5)<<17);
+    var2 = var2 + (((BMP2_S64_t)dig_P4)<<35);
+    var1 = ((var1 * var1 * (BMP2_S64_t)dig_P3)>>8) + ((var1 * (BMP2_S64_t)dig_P2)<<12);
+    var1 = (((((BMP2_S64_t)1)<<47)+var1))*((BMP2_S64_t)dig_P1)>>33;
+    if (var1 == 0)
+    {
+        return 0; // avoid exception caused by division by zero
+    }
+    p = 1048576-adc_P;
+    p = (((p<<31)-var2)*3125)/var1;
+    var1 = (((BMP2_S64_t)dig_P9) * (p>>13) * (p>>13)) >> 25;
+    var2 = (((BMP2_S64_t)dig_P8) * p) >> 19;
+    p = ((p + var1 + var2) >> 8) + (((BMP2_S64_t)dig_P7)<<4);
+    return (BMP2_U32_t)p;
+}
+```
+
 
 ### 2.2. Setup du STM32
 - Configuration CubeMX (I2C1 en mode Fast Mode, GPIO SCL/SDA avec pull-up)
