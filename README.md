@@ -60,8 +60,6 @@ Matériel utilisé :
 <div style="background:#1e1e1e; padding:1px; border-radius:8px; border:1px solid #404040; margin:20px 0">
 
 ```c
-// Returns temperature in DegC, resolution is 0.01 DegC. Output value of “5123” equals 51.23 DegC.
-// t_fine carries fine temperature as global value
 BMP2_S32_t t_fine;
 BMP2_S32_t bmp280_compensate_T_int32(BMP2_S32_t adc_T)
 {
@@ -74,8 +72,6 @@ BMP2_S32_t bmp280_compensate_T_int32(BMP2_S32_t adc_T)
     return T;
 }
 
-// Returns pressure in Pa as unsigned 32 bit integer in Q24.8 format (24 integer bits and 8 fractional bits).
-// Output value of “24674867” represents 24674867/256 = 96386.2 Pa = 963.862 hPa
 BMP2_U32_t bmp280_compensate_P_int64(BMP2_S32_t adc_P)
 {
     BMP2_S64_t var1, var2, p;
@@ -106,13 +102,8 @@ BMP2_U32_t bmp280_compensate_P_int64(BMP2_S32_t adc_P)
 <span style="color:#666; font-size:0.9em;">Extrait verbatim du datasheet Bosch (page 45-46) – version sans float, parfaite pour STM32</span>
 
 <div style="background:#1e1e1e; padding:1px; border-radius:8px; border:1px solid #404040; margin:20px 0">
-'''c
-
-
-
-
-
-------------------------------------ECRIS TON CODE ICI-----------------------------
+```c
+caca
 
 ```
 - Vérification des broches (oscilloscope/logic analyzer)
@@ -124,7 +115,7 @@ Lecture du registre id: 0xD0
 <span style="color:#666; font-size:0.9em;">Extrait verbatim du datasheet Bosch (page 45-46) – version sans float, parfaite pour STM32</span>
 
 <div style="background:#1e1e1e; padding:1px; border-radius:8px; border:1px solid #404040; margin:20px 0">
-'''c
+```c
 
   uint8_t result;
 
@@ -160,7 +151,7 @@ On obtient alors le resultat suivant:
 <span style="color:#666; font-size:0.9em;">Extrait verbatim du datasheet Bosch (page 45-46) – version sans float, parfaite pour STM32</span>
 
 <div style="background:#1e1e1e; padding:1px; border-radius:8px; border:1px solid #404040; margin:20px 0">
-'''c
+```c
 #define BMP280_MODE_NORMAL        0x03u
 #define BMP280_OSRS_P_x16         (5u << 2)
 #define BMP280_OSRS_T_x2          (2u << 5)
