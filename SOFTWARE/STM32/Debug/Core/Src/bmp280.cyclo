@@ -1,0 +1,8 @@
+../Core/Src/bmp280.c:5:19:bmp280_write_reg	1
+../Core/Src/bmp280.c:11:19:bmp280_read_regs	2
+../Core/Src/bmp280.c:24:26:bmp280_read_calibration	2
+../Core/Src/bmp280.c:51:19:BMP280_Reset	1
+../Core/Src/bmp280.c:56:19:BMP280_Init	7
+../Core/Src/bmp280.c:89:19:BMP280_ReadRaw	2
+../Core/Src/bmp280.c:109:9:BMP280_Compensate_T_int32	1
+../Core/Src/bmp280.c:128:10:BMP280_Compensate_P_uint32	3
