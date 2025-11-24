@@ -100,8 +100,16 @@ BMP2_U32_t bmp280_compensate_P_int64(BMP2_S32_t adc_P)
 
 
 ### 2.2. Setup du STM32
-- Configuration CubeMX (I2C1 en mode Fast Mode, GPIO SCL/SDA avec pull-up)
-- Génération du code avec STM32CubeIDE
+- Configuration CubeMX (I2C1 sur broches PB8 et PB9)
+- Ecriture d'un Driver I2C pour BMP280:
+
+<span style="color:#666; font-size:0.9em;">Extrait verbatim du datasheet Bosch (page 45-46) – version sans float, parfaite pour STM32</span>
+
+<div style="background:#1e1e1e; padding:1px; border-radius:8px; border:1px solid #404040; margin:20px 0">
+
+------------------------------------ECRIS TON CODE ICI-----------------------------
+
+```
 - Vérification des broches (oscilloscope/logic analyzer)
 
 ### 2.3. Communication I²C
