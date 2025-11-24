@@ -2,20 +2,7 @@
 
 > **Module** : Bus et Réseaux  
 > **Année** : 2025-2026  
-> **Réalisé par** : [Votre Nom]  
-> **Date de rendu** : [Date]
-
-<div align="center">
-
-| TP   | Sujet                              | État         | Note |
-|:----:|------------------------------------|:------------:|:----:|
-| TP1  | Bus I²C + BMP280                   | ✅ Terminé   | --/20 |
-| TP2  | Communication STM32 ↔ Raspberry Pi | ✅ Terminé   | --/20 |
-| TP3  | API REST avec Python               | ✅ Terminé   | --/20 |
-| TP4  | Bus CAN + moteur                   | ✅ Terminé   | --/20 |
-| TP5  | Intégration complète               | ✅ Terminé   | --/20 |
-
-</div>
+> **Réalisé par** : ROMEO - POMMERY  
 
 ---
 
