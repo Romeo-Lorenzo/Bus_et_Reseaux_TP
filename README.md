@@ -204,8 +204,14 @@ On obtient alors le resultat suivant pour ce qui est des registres de calibratio
 ## 3. TP 2 – Interfaçage STM32 ↔ Raspberry Pi
 
 ### 3.1. Mise en route du Raspberry Pi Zero
+
+![Raspberry Pi 0 W](https://github.com/user-attachments/assets/276b6d6d-4f0e-4387-bccf-9066da77b650)
+
 - Installation de Raspberry Pi OS Lite (Headless)
 - Activation UART (config.txt + cmdline.txt)
+
+L'adresse IP est attribuée par le DHCP de manière dynamique, à chaque nouvelle connection elle attribue une adresse IP qu'elle associe à l'adresse MAC du dispositif.
+
 - Test avec `minicom` ou `screen`
 
 ### 3.2. Port Série
