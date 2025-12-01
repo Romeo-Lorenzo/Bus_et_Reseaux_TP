@@ -356,6 +356,7 @@ Puis dans le main on recupere les mesures de chaque capteur et on process les co
 }
 ```
 On obtient le resultat suivant:
+
 <img width="429" height="483" alt="image" src="https://github.com/user-attachments/assets/594ea461-9ce6-4ac5-8a31-faae23f6681b" />
 
 On remarque donc qu'on est en capacité d'interroger les valeurs des capteur et de changer la valeurs d'un coefficient à distance en passant par wifi et par la communication uart entre raspberry pi et stm32. 
@@ -363,6 +364,12 @@ On remarque donc qu'on est en capacité d'interroger les valeurs des capteur et 
 Voici donc le montage STM32-RPi-Capteurs:
 
 <img width="400" height="700" alt="Labubu de filtrage" src="https://github.com/user-attachments/assets/9e134718-e262-458e-8a76-6d5b84d6046a">
+
+Pour ce qui est de l'utilisation de python afin de demander les valeurs des capteurs:
+
+
+
+<img width="327" height="468" alt="image" src="https://github.com/user-attachments/assets/bd981421-3dae-4ccc-a4f5-13ccde9da2e9" />
 
 
 ## 4. TP 3 – Interface REST
