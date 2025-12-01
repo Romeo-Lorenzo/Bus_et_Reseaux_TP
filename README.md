@@ -223,6 +223,8 @@ L'adresse IP est attribuée par le DHCP de manière dynamique, à chaque nouvell
 - Câblage STM32 (USART2) → Raspberry (GPIO14/15)
 - Configuration USART STM32 (115200 bauds, 8N1)
 - Envoi de trames texte ou binaires depuis le STM32
+- <img width="522" height="493" alt="image" src="https://github.com/user-attachments/assets/576f6898-79bc-4c0b-bd8c-e93d6c0bf248" />
+
 
 ### 3.3. Commande depuis Python
 - Script Python avec `pyserial`
