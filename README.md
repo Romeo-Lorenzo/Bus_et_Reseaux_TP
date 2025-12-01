@@ -229,9 +229,136 @@ L'adresse IP est attribuée par le DHCP de manière dynamique, à chaque nouvell
 ### 3.3. Commande depuis Python
 - Script Python avec `pyserial`
 - Protocole simple (ex : "TEMP?" → réponse "23.45\r\n")
-- Parsing des données et affichage/graphique (matplotlib)
+  Pour cela Nous créons un shell rudimentaire permettant de prendre en compte les commandes necessaires.On se repose sur une récéption par dma circulaire.
+```c
 
----
+static void PROTO_HandleCommand(const char *cmd)
+{
+    if (strcmp(cmd, "GET_T") == 0)
+    {
+        float T =(float) (bmp280.cal_temp)*0.01f;
+        uint16_t len=0;
+        len=snprintf((char *)s_tx_buf, 32, "T=%+06.2f_C\n\r", T);
+        HAL_UART_Transmit(&huart1, (uint8_t*)s_tx_buf, (uint16_t)len, HAL_MAX_DELAY);
+    }
+    else if (strcmp(cmd, "GET_P") == 0)
+    {
+        float P =(float) (bmp280.cal_press)*0.001f;
+        uint16_t len=0;
+        len=snprintf((char *)s_tx_buf,32, "P=%fPa\n\r", P);
+        HAL_UART_Transmit(&huart1, (uint8_t*)s_tx_buf, (uint16_t)len, HAL_MAX_DELAY);
+    }
+    else if (strncmp(cmd, "SET_K=", 6) == 0)
+    {
+        int32_t k_raw = atoi(&cmd[6]);
+        K=(float)k_raw*0.01;
+        uint16_t len=0;
+        len=snprintf((char *)s_tx_buf,32, "SET_K=OK\n\r");
+        HAL_UART_Transmit(&huart1, (uint8_t*)s_tx_buf, (uint16_t)len, HAL_MAX_DELAY);
+    }
+    else if (strcmp(cmd, "GET_K") == 0)
+    {
+        uint16_t len=0;
+        len=snprintf((char *)s_tx_buf,32, "K=%08.5f\n\r", K);
+        HAL_UART_Transmit(&huart1, (uint8_t*)s_tx_buf, (uint16_t)len, HAL_MAX_DELAY);
+    }
+    else if (strcmp(cmd, "GET_A") == 0)
+    {
+        float A = imu.mz;
+        uint16_t len=0;
+        len=snprintf((char *)s_tx_buf, 32, "A=%08.4f\n\r", A);
+        HAL_UART_Transmit(&huart1, (uint8_t*)s_tx_buf, (uint16_t)len, HAL_MAX_DELAY);
+    }
+    else
+    {
+        uint16_t len=0;
+        len=snprintf((char *)s_tx_buf, 32, "ERR\n\r");
+        HAL_UART_Transmit(&huart1, (uint8_t*)s_tx_buf, (uint16_t)len, HAL_MAX_DELAY);
+    }
+}
+
+
+void PROTO_Process(void)
+{
+    // Calculer l'index d'écriture actuel dans le buffer DMA
+    // NDTR = nombre d'éléments restant à transférer
+    uint16_t dma_ndtr = __HAL_DMA_GET_COUNTER(huart1.hdmarx);
+    uint16_t write_idx = PROTO_UART_RX_BUF_SIZE - dma_ndtr;
+
+    while (read_idx != write_idx)
+    {
+        uint8_t c = rx_dma_buf[read_idx];
+        read_idx++;
+        if (read_idx >= PROTO_UART_RX_BUF_SIZE){
+            read_idx = 0;
+        }
+
+        if (c == '\r' || c == '\n')
+        {
+            if (s_line_pos > 0)
+            {
+                s_line_buf[s_line_pos] = '\0';
+                PROTO_HandleCommand(s_line_buf);
+                s_line_pos = 0;
+            }
+        }
+        else
+        {
+            if (s_line_pos < sizeof(s_line_buf) - 1)
+            {
+                s_line_buf[s_line_pos++] = (char)c;
+            }
+        }
+    }
+}
+
+```
+
+Puis dans le main on recupere les mesures de chaque capteur et on process les commandes: 
+
+```c
+	HAL_Delay(10);
+	BMP280_Init(&bmp280);
+	printf("MPU9250 init...\r\n");
+	if(!MPU9250_Init()) {
+		printf("Erreur init MPU9250\r\n");
+	}
+	printf("MPU9250 OK\r\n");
+	HAL_StatusTypeDef result=HAL_OK;
+	if(HAL_UART_Receive_DMA(&huart1,(uint8_t *) rx_dma_buf,PROTO_UART_RX_BUF_SIZE)!=HAL_OK){
+		result=HAL_ERROR;
+	}
+
+
+
+  /* USER CODE END 2 */
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+	while (1)
+	{
+
+		  BMP280_ReadRaw(&bmp280);
+		  BMP280_Compensate_T_int32(&bmp280);
+		  BMP280_Compensate_P_uint32(&bmp280);
+		  if(MPU9250_ReadAll(&imu)) {
+				//printf("ACC: ax = %.3f g | ay = %.3f g | az = %.3f g\r\n", imu.ax, imu.ay, imu.az);
+			}
+
+		  PROTO_Process();
+		  HAL_GPIO_TogglePin(GPIOA,GPIO_PIN_5);
+		  HAL_Delay(100);
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
+	}
+  /* USER CODE END 3 */
+}
+```
+On obtient le resultat suivant:
+<img width="429" height="483" alt="image" src="https://github.com/user-attachments/assets/594ea461-9ce6-4ac5-8a31-faae23f6681b" />
+
+On remarque donc qu'on est en capacité d'interroger les valeurs des capteur et de changer la valeurs d'un coefficient à distance en passant par wifi et par la communication uart entre raspberry pi et stm32. 
 
 ## 4. TP 3 – Interface REST
 
