@@ -214,6 +214,9 @@ L'adresse IP est attribuée par le DHCP de manière dynamique, à chaque nouvell
 
 - Test avec `minicom` ou `screen`
 
+- <img width="952" height="222" alt="image" src="https://github.com/user-attachments/assets/c3f16a88-9e50-47b5-907c-d9a864ba8c95" />
+
+
 ### 3.2. Port Série
 - Câblage STM32 (USART2) → Raspberry (GPIO14/15)
 - Configuration USART STM32 (115200 bauds, 8N1)
