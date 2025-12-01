@@ -209,6 +209,8 @@ On obtient alors le resultat suivant pour ce qui est des registres de calibratio
 
 - Installation de Raspberry Pi OS Lite (Headless)
 - Activation UART (config.txt + cmdline.txt)
+- <img width="1484" height="934" alt="image" src="https://github.com/user-attachments/assets/c8597fdd-6436-46d6-9f1d-a7748ba23cb8" />
+
 
 L'adresse IP est attribuée par le DHCP de manière dynamique, à chaque nouvelle connection elle attribue une adresse IP qu'elle associe à l'adresse MAC du dispositif.
 
