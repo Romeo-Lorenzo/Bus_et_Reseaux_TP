@@ -365,12 +365,32 @@ Voici donc le montage STM32-RPi-Capteurs:
 
 <img width="400" height="700" alt="Labubu de filtrage" src="https://github.com/user-attachments/assets/9e134718-e262-458e-8a76-6d5b84d6046a">
 
-Pour ce qui est de l'utilisation de python afin de demander les valeurs des capteurs:
+Pour ce qui est de l'utilisation de python afin de demander les valeurs des capteurs, voici un premier script afin de tester la communication:
 
+```p
+import serial
+import time
 
+ser = serial.Serial(
+    port="/dev/serial0",   # USART1 on Pi Zero W
+    baudrate=115200,
+    timeout=1
+)
 
-<img width="327" height="468" alt="image" src="https://github.com/user-attachments/assets/bd981421-3dae-4ccc-a4f5-13ccde9da2e9" />
+if ser.is_open:
+    print("UART opened successfully")
 
+while True:
+    message = "GET_T\n\r"
+    ser.write(message.encode())     # Send data
+    print("Sent:", message.strip())
+
+    time.sleep(1)   # send every 1 second
+```
+
+<img width="327" height="468" alt="image" src="https://github.com/user-attachments/assets/bd981421-3dae-4ccc-a4f5-13ccde9da2e9" />	
+
+<img width="459" height="210" alt="image" src="https://github.com/user-attachments/assets/ba68d626-c47d-4d01-b254-0fd082843007" />
 
 ## 4. TP 3 – Interface REST
 
