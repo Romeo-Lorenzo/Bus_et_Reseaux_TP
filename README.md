@@ -360,6 +360,11 @@ On obtient le resultat suivant:
 
 On remarque donc qu'on est en capacité d'interroger les valeurs des capteur et de changer la valeurs d'un coefficient à distance en passant par wifi et par la communication uart entre raspberry pi et stm32. 
 
+Voici donc le montage STM32-RPi-Capteurs:
+
+<img width="400" height="700" alt="Labubu de filtrage" src="https://github.com/user-attachments/assets/9e134718-e262-458e-8a76-6d5b84d6046a">
+
+
 ## 4. TP 3 – Interface REST
 
 ### 4.1. Installation du serveur Python
