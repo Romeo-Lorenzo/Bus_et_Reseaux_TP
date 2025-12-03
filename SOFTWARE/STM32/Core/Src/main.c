@@ -1,24 +1,24 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2025 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file           : main.c
+ * @brief          : Main program body
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2025 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "cmsis_os.h"
+#include "dma.h"
 #include "i2c.h"
 #include "usart.h"
 #include "gpio.h"
@@ -26,6 +26,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "bmp280.h"
+#include "mpu9250.h"
+#include "com.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,11 +49,15 @@
 
 /* USER CODE BEGIN PV */
 BMP280_HandleTypeDef bmp280;
+mpu9250_data_t imu;
+extern uint8_t rx_dma_buf[PROTO_UART_RX_BUF_SIZE];
+
+float K=0.0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -66,11 +72,12 @@ void MX_FREERTOS_Init(void);
 
 PUTCHAR_PROTOTYPE
 {
-  /* Place your implementation of fputc here */
-  /* e.g. write a character to the USART2 and Loop until the end of transmission */
-  HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, 0xFFFF);
+	/* Place your implementation of fputc here */
+	/* e.g. write a character to the USART2 and Loop until the end of transmission */
+	HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, 0xFFFF);
+	HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, 0xFFFF);
 
-  return ch;
+	return ch;
 }
 /* USER CODE END 0 */
 
@@ -103,44 +110,46 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USART2_UART_Init();
   MX_I2C1_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  HAL_Delay(10);
-
-  uint8_t result;
-
-  bmp280_read_regs(&bmp280,BMP280_REG_CHIP_ID,&result,1);
-  printf("id est %x\n\r",result);
-
-
-
-  bmp280_read_calibration(&bmp280);
-
-
-
-  BMP280_Init(&bmp280);
+	HAL_Delay(10);
+	BMP280_Init(&bmp280);
+	printf("MPU9250 init...\r\n");
+	if(!MPU9250_Init()) {
+		printf("Erreur init MPU9250\r\n");
+	}
+	printf("MPU9250 OK\r\n");
+	HAL_StatusTypeDef result=HAL_OK;
+	if(HAL_UART_Receive_DMA(&huart1,(uint8_t *) rx_dma_buf,PROTO_UART_RX_BUF_SIZE)!=HAL_OK){
+		result=HAL_ERROR;
+	}
 
 
 
   /* USER CODE END 2 */
 
-  /* Call init function for freertos objects (in cmsis_os2.c) */
-  MX_FREERTOS_Init();
-
-  /* Start scheduler */
-  osKernelStart();
-
-  /* We should never get here as control is now taken by the scheduler */
-
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
+	while (1)
+	{
+
+		  BMP280_ReadRaw(&bmp280);
+		  BMP280_Compensate_T_int32(&bmp280);
+		  BMP280_Compensate_P_uint32(&bmp280);
+		  if(MPU9250_ReadAll(&imu)) {
+				//printf("ACC: ax = %.3f g | ay = %.3f g | az = %.3f g\r\n", imu.ax, imu.ay, imu.az);
+			}
+
+		  PROTO_Process();
+		  HAL_GPIO_TogglePin(GPIOA,GPIO_PIN_5);
+		  HAL_Delay(100);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
+	}
   /* USER CODE END 3 */
 }
 
@@ -224,11 +233,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-  __disable_irq();
-  while (1)
-  {
-  }
+	/* User can add his own implementation to report the HAL error return state */
+	__disable_irq();
+	while (1)
+	{
+	}
   /* USER CODE END Error_Handler_Debug */
 }
 #ifdef USE_FULL_ASSERT
@@ -242,7 +251,7 @@ void Error_Handler(void)
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
+	/* User can add his own implementation to report the file name and line number,
      ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }

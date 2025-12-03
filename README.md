@@ -60,8 +60,6 @@ Matériel utilisé :
 <div style="background:#1e1e1e; padding:1px; border-radius:8px; border:1px solid #404040; margin:20px 0">
 
 ```c
-// Returns temperature in DegC, resolution is 0.01 DegC. Output value of “5123” equals 51.23 DegC.
-// t_fine carries fine temperature as global value
 BMP2_S32_t t_fine;
 BMP2_S32_t bmp280_compensate_T_int32(BMP2_S32_t adc_T)
 {
@@ -74,8 +72,6 @@ BMP2_S32_t bmp280_compensate_T_int32(BMP2_S32_t adc_T)
     return T;
 }
 
-// Returns pressure in Pa as unsigned 32 bit integer in Q24.8 format (24 integer bits and 8 fractional bits).
-// Output value of “24674867” represents 24674867/256 = 96386.2 Pa = 963.862 hPa
 BMP2_U32_t bmp280_compensate_P_int64(BMP2_S32_t adc_P)
 {
     BMP2_S64_t var1, var2, p;
@@ -100,14 +96,99 @@ BMP2_U32_t bmp280_compensate_P_int64(BMP2_S32_t adc_P)
 
 
 ### 2.2. Setup du STM32
-- Configuration CubeMX (I2C1 en mode Fast Mode, GPIO SCL/SDA avec pull-up)
-- Génération du code avec STM32CubeIDE
+- Configuration CubeMX (I2C1 sur broches PB8 et PB9)
+- Ecriture d'un Driver I2C pour BMP280:
+   
+```c
+
+caca
+
+```
 - Vérification des broches (oscilloscope/logic analyzer)
 
 ### 2.3. Communication I²C
 - Écriture/lecture simple d’un registre
-- Implémentation des fonctions `BMP280 init(), readTemperature(), readPressure()
-- Gestion des coefficients de calibration
+Lecture du registre id: 0xD0
+   
+```c
+
+  uint8_t result;
+
+  bmp280_read_regs(&bmp280,BMP280_REG_CHIP_ID,&result,1);
+  printf("id est %x",result);
+
+
+HAL_StatusTypeDef bmp280_write_reg(BMP280_HandleTypeDef *dev,uint8_t reg,uint8_t value)
+{
+    uint8_t buf[2] = { reg, value };
+    return HAL_I2C_Master_Transmit(&hi2c1,(BMP280_I2C_ADDR_SDO_HIGH << 1),buf,2,HAL_MAX_DELAY);
+}
+
+HAL_StatusTypeDef bmp280_read_regs(BMP280_HandleTypeDef *dev,uint8_t reg,uint8_t *pData,uint16_t size)
+{
+    HAL_StatusTypeDef status;
+    status = HAL_I2C_Master_Transmit(&hi2c1,(BMP280_I2C_ADDR_SDO_HIGH << 1),&reg,1,HAL_MAX_DELAY);
+    if (status != HAL_OK){
+        return status;
+    }
+    status = HAL_I2C_Master_Receive(&hi2c1,(BMP280_I2C_ADDR_SDO_HIGH << 1),pData,size,HAL_MAX_DELAY);
+    return status;
+}
+
+```
+
+On obtient alors le resultat suivant:
+
+<img width="167" height="35" alt="image" src="https://github.com/user-attachments/assets/c229b956-eb97-43ef-992c-d83fff34ee63" />
+
+- On envois maintenant la config au barometre donc oversamplig x2 de la temperature, oversampling x16 de la pression et mode normal.
+  Pour cela nous allons lire puis ecrire une valeurs precise dans le registre 0xF4, on y applique les masque afin d'obtenir les bonnes valeurs oversampling et de mode de fonctionne en accord avec la datasheet. Puis pour lire les registre de calibration, on lit 24 octet, et on concatene certain de ces registres ensemble afin de former les valeurs de calibration finales en int16_t ou uint16_t.
+
+```c
+   
+#define BMP280_MODE_NORMAL        0x03u
+#define BMP280_OSRS_P_x16         (5u << 2)
+#define BMP280_OSRS_T_x2          (2u << 5)
+#define BMP280_REG_CALIB_START    0x88u
+#define BMP280_CALIB_LENGTH       24u
+                                         
+uint8_t ctrl_meas = BMP280_OSRS_T_x2 | BMP280_OSRS_P_x16 | BMP280_MODE_NORMAL;
+status = bmp280_write_reg(dev, BMP280_REG_CTRL_MEAS, ctrl_meas);
+
+HAL_StatusTypeDef bmp280_read_calibration(BMP280_HandleTypeDef *dev)
+{
+    uint8_t calib[BMP280_CALIB_LENGTH];
+    HAL_StatusTypeDef status;
+
+    status = bmp280_read_regs(dev, BMP280_REG_CALIB_START, calib, BMP280_CALIB_LENGTH);
+    if (status != HAL_OK) return status;
+
+    dev->calib.dig_T1 = (uint16_t)((calib[1] << 8) | calib[0]);
+    dev->calib.dig_T2 = (int16_t)((calib[3] << 8) | calib[2]);
+    dev->calib.dig_T3 = (int16_t)((calib[5] << 8) | calib[4]);
+
+    dev->calib.dig_P1 = (uint16_t)((calib[7] << 8) | calib[6]);
+    dev->calib.dig_P2 = (int16_t)((calib[9] << 8) | calib[8]);
+    dev->calib.dig_P3 = (int16_t)((calib[11] << 8) | calib[10]);
+    dev->calib.dig_P4 = (int16_t)((calib[13] << 8) | calib[12]);
+    dev->calib.dig_P5 = (int16_t)((calib[15] << 8) | calib[14]);
+    dev->calib.dig_P6 = (int16_t)((calib[17] << 8) | calib[16]);
+    dev->calib.dig_P7 = (int16_t)((calib[19] << 8) | calib[18]);
+    dev->calib.dig_P8 = (int16_t)((calib[21] << 8) | calib[20]);
+    dev->calib.dig_P9 = (int16_t)((calib[23] << 8) | calib[22]);
+
+    return HAL_OK;
+}
+                                         
+```
+On obtient alors le resultat suivant pour ce qui est des registres de calibration:
+
+<img width="591" height="466" alt="image" src="https://github.com/user-attachments/assets/16fafa58-c15e-48a8-81b8-2e3c7c91276e" />
+
+
+- Maintenant nous allons faire la mesure de la temperature raw et de la pression raw et y appliquer les calibrations.
+
+
 - Affichage des résultats sur UART (bonus : moniteur série)
 
 ### 2.4. Interfaçage de l’accéléromètre

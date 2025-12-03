@@ -1,0 +1,15 @@
+../Core/Src/mpu9250.c:15:9:MPU9250_WriteReg	1
+../Core/Src/mpu9250.c:21:9:MPU9250_ReadRegs	2
+../Core/Src/mpu9250.c:28:16:ak8963_write	1
+../Core/Src/mpu9250.c:34:16:ak8963_read	2
+../Core/Src/mpu9250.c:40:16:AK8963_Init	2
+../Core/Src/mpu9250.c:69:9:MPU9250_Init	3
+../Core/Src/mpu9250.c:104:9:MPU9250_SetAccelRange	5
+../Core/Src/mpu9250.c:119:9:MPU9250_SetGyroRange	5
+../Core/Src/mpu9250.c:133:9:MPU9250_SetSampleRate	1
+../Core/Src/mpu9250.c:141:9:MPU9250_EnableBypass	2
+../Core/Src/mpu9250.c:147:9:MPU9250_ReadAccelRaw	2
+../Core/Src/mpu9250.c:157:9:MPU9250_ReadGyroRaw	2
+../Core/Src/mpu9250.c:167:9:MPU9250_ReadTempRaw	2
+../Core/Src/mpu9250.c:175:9:MPU9250_ReadMagRaw	5
+../Core/Src/mpu9250.c:193:9:MPU9250_ReadAll	3
