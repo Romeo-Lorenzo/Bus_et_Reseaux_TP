@@ -2,7 +2,8 @@
 
 > **Module** : Bus et Réseaux  
 > **Année** : 2025-2026  
-> **Réalisé par** : ROMEO - POMMERY  
+> **Réalisé par** : ROMEO - POMMERY   
+> **Boite n°4**
 
 ---
 
@@ -203,21 +204,193 @@ On obtient alors le resultat suivant pour ce qui est des registres de calibratio
 ## 3. TP 2 – Interfaçage STM32 ↔ Raspberry Pi
 
 ### 3.1. Mise en route du Raspberry Pi Zero
+
+![Raspberry Pi 0 W](https://github.com/user-attachments/assets/276b6d6d-4f0e-4387-bccf-9066da77b650)
+
 - Installation de Raspberry Pi OS Lite (Headless)
 - Activation UART (config.txt + cmdline.txt)
+- <img width="1484" height="934" alt="image" src="https://github.com/user-attachments/assets/c8597fdd-6436-46d6-9f1d-a7748ba23cb8" />
+
+
+L'adresse IP est attribuée par le DHCP de manière dynamique, à chaque nouvelle connection elle attribue une adresse IP qu'elle associe à l'adresse MAC du dispositif.
+
 - Test avec `minicom` ou `screen`
+
+- <img width="952" height="222" alt="image" src="https://github.com/user-attachments/assets/c3f16a88-9e50-47b5-907c-d9a864ba8c95" />
+
 
 ### 3.2. Port Série
 - Câblage STM32 (USART2) → Raspberry (GPIO14/15)
 - Configuration USART STM32 (115200 bauds, 8N1)
 - Envoi de trames texte ou binaires depuis le STM32
+- <img width="522" height="493" alt="image" src="https://github.com/user-attachments/assets/576f6898-79bc-4c0b-bd8c-e93d6c0bf248" />
+
 
 ### 3.3. Commande depuis Python
 - Script Python avec `pyserial`
 - Protocole simple (ex : "TEMP?" → réponse "23.45\r\n")
-- Parsing des données et affichage/graphique (matplotlib)
+  Pour cela Nous créons un shell rudimentaire permettant de prendre en compte les commandes necessaires.On se repose sur une récéption par dma circulaire.
+```c
 
----
+static void PROTO_HandleCommand(const char *cmd)
+{
+    if (strcmp(cmd, "GET_T") == 0)
+    {
+        float T =(float) (bmp280.cal_temp)*0.01f;
+        uint16_t len=0;
+        len=snprintf((char *)s_tx_buf, 32, "T=%+06.2f_C\n\r", T);
+        HAL_UART_Transmit(&huart1, (uint8_t*)s_tx_buf, (uint16_t)len, HAL_MAX_DELAY);
+    }
+    else if (strcmp(cmd, "GET_P") == 0)
+    {
+        float P =(float) (bmp280.cal_press)*0.001f;
+        uint16_t len=0;
+        len=snprintf((char *)s_tx_buf,32, "P=%fPa\n\r", P);
+        HAL_UART_Transmit(&huart1, (uint8_t*)s_tx_buf, (uint16_t)len, HAL_MAX_DELAY);
+    }
+    else if (strncmp(cmd, "SET_K=", 6) == 0)
+    {
+        int32_t k_raw = atoi(&cmd[6]);
+        K=(float)k_raw*0.01;
+        uint16_t len=0;
+        len=snprintf((char *)s_tx_buf,32, "SET_K=OK\n\r");
+        HAL_UART_Transmit(&huart1, (uint8_t*)s_tx_buf, (uint16_t)len, HAL_MAX_DELAY);
+    }
+    else if (strcmp(cmd, "GET_K") == 0)
+    {
+        uint16_t len=0;
+        len=snprintf((char *)s_tx_buf,32, "K=%08.5f\n\r", K);
+        HAL_UART_Transmit(&huart1, (uint8_t*)s_tx_buf, (uint16_t)len, HAL_MAX_DELAY);
+    }
+    else if (strcmp(cmd, "GET_A") == 0)
+    {
+        float A = imu.mz;
+        uint16_t len=0;
+        len=snprintf((char *)s_tx_buf, 32, "A=%08.4f\n\r", A);
+        HAL_UART_Transmit(&huart1, (uint8_t*)s_tx_buf, (uint16_t)len, HAL_MAX_DELAY);
+    }
+    else
+    {
+        uint16_t len=0;
+        len=snprintf((char *)s_tx_buf, 32, "ERR\n\r");
+        HAL_UART_Transmit(&huart1, (uint8_t*)s_tx_buf, (uint16_t)len, HAL_MAX_DELAY);
+    }
+}
+
+
+void PROTO_Process(void)
+{
+    // Calculer l'index d'écriture actuel dans le buffer DMA
+    // NDTR = nombre d'éléments restant à transférer
+    uint16_t dma_ndtr = __HAL_DMA_GET_COUNTER(huart1.hdmarx);
+    uint16_t write_idx = PROTO_UART_RX_BUF_SIZE - dma_ndtr;
+
+    while (read_idx != write_idx)
+    {
+        uint8_t c = rx_dma_buf[read_idx];
+        read_idx++;
+        if (read_idx >= PROTO_UART_RX_BUF_SIZE){
+            read_idx = 0;
+        }
+
+        if (c == '\r' || c == '\n')
+        {
+            if (s_line_pos > 0)
+            {
+                s_line_buf[s_line_pos] = '\0';
+                PROTO_HandleCommand(s_line_buf);
+                s_line_pos = 0;
+            }
+        }
+        else
+        {
+            if (s_line_pos < sizeof(s_line_buf) - 1)
+            {
+                s_line_buf[s_line_pos++] = (char)c;
+            }
+        }
+    }
+}
+
+```
+
+Puis dans le main on recupere les mesures de chaque capteur et on process les commandes: 
+
+```c
+	HAL_Delay(10);
+	BMP280_Init(&bmp280);
+	printf("MPU9250 init...\r\n");
+	if(!MPU9250_Init()) {
+		printf("Erreur init MPU9250\r\n");
+	}
+	printf("MPU9250 OK\r\n");
+	HAL_StatusTypeDef result=HAL_OK;
+	if(HAL_UART_Receive_DMA(&huart1,(uint8_t *) rx_dma_buf,PROTO_UART_RX_BUF_SIZE)!=HAL_OK){
+		result=HAL_ERROR;
+	}
+
+
+
+  /* USER CODE END 2 */
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+	while (1)
+	{
+
+		  BMP280_ReadRaw(&bmp280);
+		  BMP280_Compensate_T_int32(&bmp280);
+		  BMP280_Compensate_P_uint32(&bmp280);
+		  if(MPU9250_ReadAll(&imu)) {
+				//printf("ACC: ax = %.3f g | ay = %.3f g | az = %.3f g\r\n", imu.ax, imu.ay, imu.az);
+			}
+
+		  PROTO_Process();
+		  HAL_GPIO_TogglePin(GPIOA,GPIO_PIN_5);
+		  HAL_Delay(100);
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
+	}
+  /* USER CODE END 3 */
+}
+```
+On obtient le resultat suivant:
+
+<img width="429" height="483" alt="image" src="https://github.com/user-attachments/assets/594ea461-9ce6-4ac5-8a31-faae23f6681b" />
+
+On remarque donc qu'on est en capacité d'interroger les valeurs des capteur et de changer la valeurs d'un coefficient à distance en passant par wifi et par la communication uart entre raspberry pi et stm32. 
+
+Voici donc le montage STM32-RPi-Capteurs:
+
+<img width="400" height="700" alt="Labubu de filtrage" src="https://github.com/user-attachments/assets/9e134718-e262-458e-8a76-6d5b84d6046a">
+
+Pour ce qui est de l'utilisation de python afin de demander les valeurs des capteurs, voici un premier script afin de tester la communication:
+
+```p
+import serial
+import time
+
+ser = serial.Serial(
+    port="/dev/serial0",   # USART1 on Pi Zero W
+    baudrate=115200,
+    timeout=1
+)
+
+if ser.is_open:
+    print("UART opened successfully")
+
+while True:
+    message = "GET_T\n\r"
+    ser.write(message.encode())     # Send data
+    print("Sent:", message.strip())
+
+    time.sleep(1)   # send every 1 second
+```
+
+<img width="327" height="468" alt="image" src="https://github.com/user-attachments/assets/bd981421-3dae-4ccc-a4f5-13ccde9da2e9" />	
+
+<img width="459" height="210" alt="image" src="https://github.com/user-attachments/assets/ba68d626-c47d-4d01-b254-0fd082843007" />
 
 ## 4. TP 3 – Interface REST
 
