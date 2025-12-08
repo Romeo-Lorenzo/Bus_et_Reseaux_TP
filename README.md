@@ -434,6 +434,25 @@ Nous utilisons alors la solution 2 en imortant jsonnify, alors :
 - Route `/` → page HTML simple
 - Route `/api/sensor` → retour JSON des données capteurs
 
+```p
+from flask import Flask,jsonify
+
+app = Flask(__name__)
+@app.route('/')
+def hello_world():
+    return jsonify('Hello, World!\n')
+
+welcome = "Welcome to 3ESE API!"
+
+@app.route('/api/welcome/')
+def api_welcome():
+    return jsonify(welcome)
+
+@app.route('/api/welcome/<int:index>')
+def api_welcome_index(index):
+    return jsonify({"index": index, "val": welcome[index]}), {"Content-Type": "application/json"}
+```
+
 ### 4.3. Nouvelles méthodes HTTP
 - GET  → lecture des données
 - POST → commande moteur (vitesse, sens)
