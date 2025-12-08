@@ -405,7 +405,13 @@ Puis le commande Curl permet de se connecter au serveur et alors il nous retourn
 
 <img width="612" height="61" alt="image" src="https://github.com/user-attachments/assets/e16dd7c7-86dd-4bb9-96ee-8bff9d42f4af" />
 
+Le décorateur @app.route sert a executer un bout de code, une fonction lorsque un utilisateur visite cette URL.
+
+Par ailleurs, le role du fragment <int:index> dans @app.route('/api/welcome/<int:index>') permet de prendre la partie variable de l'url, de la convertir en entier et de la stocker dans une variable python nommée index puis ensuite on envois cette variable à la fonction api_welcome_index(index)
+
 Maintenant, nous allons changer le fichier hello.py par un fichier permettant d'interroger la stm32 sur les valeurs des capteurs: 
+
+
 
 
 
