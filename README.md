@@ -411,6 +411,13 @@ Par ailleurs, le role du fragment <int:index> dans @app.route('/api/welcome/<int
 
 Maintenant, nous allons changer le fichier hello.py par un fichier permettant d'interroger la stm32 sur les valeurs des capteurs: 
 
+Notre serveur est accessible depuis notre ordinateur 
+
+<img width="1902" height="1075" alt="image" src="https://github.com/user-attachments/assets/6678efe3-2a3f-48f1-8b46-d3200f380178" />
+
+On remarque que le json n'est pas disponible.
+
+
 
 
 
