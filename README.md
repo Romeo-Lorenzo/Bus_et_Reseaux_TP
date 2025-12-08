@@ -4,6 +4,7 @@
 > **Année** : 2025-2026  
 > **Réalisé par** : ROMEO - POMMERY   
 > **Boite n°4**
+> **IP RPi 0** : 192.168.4.218
 
 ---
 
