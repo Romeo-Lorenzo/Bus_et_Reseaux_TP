@@ -417,6 +417,13 @@ Notre serveur est accessible depuis notre ordinateur
 
 On remarque que le json n'est pas disponible.
 
+Nous utilisons alors la solution 2 en imortant jsonnify, alors :
+
+
+
+<img width="1091" height="924" alt="image" src="https://github.com/user-attachments/assets/ffe32e41-4bb2-45e1-8981-f478ccf40db7" />
+
+
 
 
 
