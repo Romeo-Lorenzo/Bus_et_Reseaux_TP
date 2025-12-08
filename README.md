@@ -4,7 +4,7 @@
 > **Année** : 2025-2026  
 > **Réalisé par** : ROMEO - POMMERY   
 > **Boite n°4**
-> **IP RPi 0** : 192.168.4.218
+> **IP Rpi0:** 192.168.4.218
 
 ---
 
@@ -396,8 +396,19 @@ while True:
 ## 4. TP 3 – Interface REST
 
 ### 4.1. Installation du serveur Python
-- Utilisation de `Flask` ou `FastAPI`
-- Lancement sur le Raspberry Pi (`0.0.0.0:5000`)
+-Nous avons donc crée un nouvel utilisation: user1 avec 0000 en mot de passe.
+Puis on lance le serveur avec le fichier hello.py 
+
+<img width="947" height="196" alt="image" src="https://github.com/user-attachments/assets/37ee3a6c-2485-48dc-9759-3ec6e45d733e" />
+
+Puis le commande Curl permet de se connecter au serveur et alors il nous retourne le texte que l'on voulais:
+
+<img width="612" height="61" alt="image" src="https://github.com/user-attachments/assets/e16dd7c7-86dd-4bb9-96ee-8bff9d42f4af" />
+
+Maintenant, nous allons changer le fichier hello.py par un fichier permettant d'interroger la stm32 sur les valeurs des capteurs: 
+
+
+
 
 ### 4.2. Première page REST
 - Route `/` → page HTML simple
