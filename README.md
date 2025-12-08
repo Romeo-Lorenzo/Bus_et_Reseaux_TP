@@ -453,6 +453,38 @@ def api_welcome_index(index):
     return jsonify({"index": index, "val": welcome[index]}), {"Content-Type": "application/json"}
 ```
 
+- Traitement de l'erreur 404:
+
+```p
+from flask import Flask, jsonify, abort, render_template
+
+app = Flask(__name__)
+@app.route('/')
+def hello_world():
+    return jsonify('Hello, World!\n')
+
+welcome = "Welcome to 3ESE API!"
+
+@app.route('/api/welcome/')
+def api_welcome():
+    return jsonify(welcome)
+
+@app.route('/api/welcome/<int:index>')
+def api_welcome_index(index):
+    if index != len(welcome):
+        abort(404)
+    else:
+        return jsonify({"index": index, "val": welcome[index]}), {"Content-Type": "application/json"}
+    abort(404)
+
+@app.errorhandler(404)
+def page_not_found(error):
+    return render_template('page_not_found.html'), 404
+```
+
+<img width="1912" height="412" alt="image" src="https://github.com/user-attachments/assets/d21f0f32-af13-4344-925c-32df80787f02" />
+
+
 ### 4.3. Nouvelles méthodes HTTP
 - GET  → lecture des données
 - POST → commande moteur (vitesse, sens)
