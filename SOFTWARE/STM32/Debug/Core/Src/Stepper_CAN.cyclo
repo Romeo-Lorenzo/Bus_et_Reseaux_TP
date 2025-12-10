@@ -1,0 +1,5 @@
+../Core/Src/Stepper_CAN.c:10:6:StepperManualMode	1
+../Core/Src/Stepper_CAN.c:21:6:StepperAngleMode	1
+../Core/Src/Stepper_CAN.c:32:6:StepperSetMode	1
+../Core/Src/Stepper_CAN.c:43:6:SetManualData	1
+../Core/Src/Stepper_CAN.c:52:6:SetAngleData	1

@@ -31,7 +31,9 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "can.h"
+#include "stm32f4xx_hal.h"
+#include "Stepper_CAN.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
