@@ -13,7 +13,7 @@ void StepperManualMode(StepperManualMode_t *data){
 	header.StdId = data->header;
 	header.IDE = CAN_ID_STD;
 	header.RTR = CAN_RTR_DATA;
-	header.DLC = sizeof(data->data)/sizeof(data->data[0]);
+	header.DLC = 3;
 
 	HAL_CAN_AddTxMessage(&hcan1, &header, data->data, &mailbox);
 }
@@ -24,7 +24,7 @@ void StepperAngleMode(StepperAngleMode_t *data){
 	header.StdId = data->header;
 	header.IDE = CAN_ID_STD;
 	header.RTR = CAN_RTR_DATA;
-	header.DLC = sizeof(data->data)/sizeof(data->data[0]);
+	header.DLC = 2;
 
 	HAL_CAN_AddTxMessage(&hcan1, &header, data->data, &mailbox);
 }
@@ -41,6 +41,7 @@ void StepperSetMode(StepperSetMode_t *data){
 }
 
 void SetManualData(StepperManualMode_t *mode, uint8_t rotation, uint8_t steps, uint8_t speed){
+	mode->header=0x60;
 	mode->data[0]=rotation;
 	mode->data[1]=steps;
 	mode->data[2]=speed;
@@ -50,6 +51,7 @@ void SetManualData(StepperManualMode_t *mode, uint8_t rotation, uint8_t steps, u
 }
 
 void SetAngleData(StepperAngleMode_t *mode, uint8_t rotation, uint8_t steps){
+	mode->header=0x61;
 	mode->data[0]=rotation;
 	mode->data[1]=steps;
 

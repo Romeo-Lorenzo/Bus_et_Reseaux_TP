@@ -159,8 +159,10 @@ int main(void)
 //		HAL_Delay(100);
 
 		SetManualData(&stepper_manual,  0x01, 0x5A, 0x01);
+		HAL_Delay(1000);
 		SetManualData(&stepper_manual,  0x00, 0x5A, 0x01);
 		HAL_Delay(1000);
+
 
 		/* USER CODE END WHILE */
 

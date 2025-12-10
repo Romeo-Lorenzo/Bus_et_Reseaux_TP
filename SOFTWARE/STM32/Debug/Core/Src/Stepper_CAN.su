@@ -2,4 +2,4 @@
 ../Core/Src/Stepper_CAN.c:21:6:StepperAngleMode	48	static
 ../Core/Src/Stepper_CAN.c:32:6:StepperSetMode	48	static
 ../Core/Src/Stepper_CAN.c:43:6:SetManualData	16	static
-../Core/Src/Stepper_CAN.c:52:6:SetAngleData	16	static
+../Core/Src/Stepper_CAN.c:53:6:SetAngleData	16	static
