@@ -502,7 +502,12 @@ def page_not_found(error):
 ### 5.1. Pilotage du moteur
 - Module CAN STM32 (bxCAN)
 - Configuration CubeMX (500 kbps ou 1 Mbps)
+- 
 - Envoi de trames pour contrôler vitesse et sens du moteur
+
+
+https://github.com/user-attachments/assets/44711b81-366f-484d-92da-8fdd8f691d40
+
 
 ### 5.2. Interfaçage avec le capteur
 - Deux cartes STM32 communicant en CAN
