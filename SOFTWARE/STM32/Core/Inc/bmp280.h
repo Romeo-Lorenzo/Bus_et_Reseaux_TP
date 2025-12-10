@@ -77,6 +77,7 @@ typedef struct
 	int32_t raw_temp;
 	int32_t raw_press;
 	uint32_t cal_temp;
+	uint32_t prevous_temp;
 	uint32_t cal_press;
     BMP280_CalibData   calib;
 } BMP280_HandleTypeDef;

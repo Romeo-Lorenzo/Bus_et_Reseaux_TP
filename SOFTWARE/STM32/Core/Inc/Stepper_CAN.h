@@ -17,6 +17,8 @@ typedef struct{
 
 typedef struct{
 	uint8_t header;
+	uint8_t previous_angle;
+	uint8_t init_angle;
 	uint8_t data[2];
 }StepperAngleMode_t;
 

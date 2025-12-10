@@ -56,12 +56,46 @@ BMP280_HandleTypeDef bmp280;
 mpu9250_data_t imu;
 extern uint8_t rx_dma_buf[PROTO_UART_RX_BUF_SIZE];
 
-float K=0.0;
+float K=0.8;
 
 StepperManualMode_t stepper_manual;
 StepperAngleMode_t stepper_angle;
 StepperSetMode_t stepper_set;
 
+
+static void update_motor_from_temp(StepperAngleMode_t *mode,BMP280_HandleTypeDef * bmp280){
+	mode->init_angle=0x7F;
+
+	int temp_div=0;
+	if(bmp280->prevous_temp!=0){
+		temp_div=bmp280->cal_temp-bmp280->prevous_temp;
+	}
+	int delta=fabs(floorf(temp_div*K)) ;
+	int16_t new_angle=0;
+	if(temp_div>=0){
+		new_angle=mode->previous_angle + delta;
+
+	}else{
+
+		new_angle=mode->previous_angle-delta;
+
+	}
+	if(new_angle>=0xFF){
+		new_angle=0xFF;
+	}
+	if(new_angle<=0){
+		new_angle=0;
+	}
+
+
+
+	SetAngleData(&stepper_angle,(uint8_t *) new_angle, 0x01);
+
+	bmp280->prevous_temp=bmp280->cal_temp;
+
+
+
+}
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -140,6 +174,8 @@ int main(void)
 		printf("Failed CAN1 Init\r\n");
 	}
 
+
+
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
@@ -147,21 +183,17 @@ int main(void)
 	while (1)
 	{
 
-//		BMP280_ReadRaw(&bmp280);
-//		BMP280_Compensate_T_int32(&bmp280);
-//		BMP280_Compensate_P_uint32(&bmp280);
-//		if(MPU9250_ReadAll(&imu)) {
-//			//printf("ACC: ax = %.3f g | ay = %.3f g | az = %.3f g\r\n", imu.ax, imu.ay, imu.az);
-//		}
-//
-//		PROTO_Process();
-//		HAL_GPIO_TogglePin(GPIOA,GPIO_PIN_5);
-//		HAL_Delay(100);
+		BMP280_ReadRaw(&bmp280);
+		BMP280_Compensate_T_int32(&bmp280);
+		BMP280_Compensate_P_uint32(&bmp280);
+		if(MPU9250_ReadAll(&imu)) {
+			//printf("ACC: ax = %.3f g | ay = %.3f g | az = %.3f g\r\n", imu.ax, imu.ay, imu.az);
+		}
 
-		SetManualData(&stepper_manual,  0x01, 0x5A, 0x01);
-		HAL_Delay(1000);
-		SetManualData(&stepper_manual,  0x00, 0x5A, 0x01);
-		HAL_Delay(1000);
+		PROTO_Process();
+		HAL_GPIO_TogglePin(GPIOA,GPIO_PIN_5);
+		update_motor_from_temp(&stepper_angle,&bmp280);
+		HAL_Delay(500);
 
 
 		/* USER CODE END WHILE */

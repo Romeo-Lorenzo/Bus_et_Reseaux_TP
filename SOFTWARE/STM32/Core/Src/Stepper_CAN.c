@@ -54,6 +54,7 @@ void SetAngleData(StepperAngleMode_t *mode, uint8_t rotation, uint8_t steps){
 	mode->header=0x61;
 	mode->data[0]=rotation;
 	mode->data[1]=steps;
+	mode->previous_angle=rotation;
 
 	StepperAngleMode(mode);
 }
