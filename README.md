@@ -611,3 +611,10 @@ On obtient alors un systeme ou la position du moteur dépend de la température 
 ## 6. TP 5 – Intégration I²C - Serial - REST - CAN
 
 Architecture finale du projet complet :
+
+<img width="969" height="575" alt="image" src="https://github.com/user-attachments/assets/1eb9752f-2fe4-4a0a-a18f-b3984fc2074f" />
+
+Maintenant,  il nous reste à améliorer la partie serveur flask, à y implementer les méthode GET, PUT DELETE pour la température, pression et etc: 
+
+
+
