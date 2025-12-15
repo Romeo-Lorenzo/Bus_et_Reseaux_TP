@@ -116,8 +116,9 @@ PUTCHAR_PROTOTYPE
 {
 	/* Place your implementation of fputc here */
 	/* e.g. write a character to the USART2 and Loop until the end of transmission */
-	HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, 0xFFFF);
 	HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, 0xFFFF);
+	HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, 0xFFFF);
+
 
 	return ch;
 }
@@ -193,7 +194,7 @@ int main(void)
 		PROTO_Process();
 		HAL_GPIO_TogglePin(GPIOA,GPIO_PIN_5);
 		update_motor_from_temp(&stepper_angle,&bmp280);
-		HAL_Delay(500);
+		HAL_Delay(100);
 
 
 		/* USER CODE END WHILE */

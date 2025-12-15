@@ -25,14 +25,14 @@ static void PROTO_HandleCommand(const char *cmd)
     {
         float T =(float) (bmp280.cal_temp)*0.01f;
         uint16_t len=0;
-        len=snprintf((char *)s_tx_buf, 32, "T=%+06.2f\n\r", T);
+        len=snprintf((char *)s_tx_buf, 32, "%06.2f\n\r", T);
         HAL_UART_Transmit(&huart1, (uint8_t*)s_tx_buf, (uint16_t)len, HAL_MAX_DELAY);
     }
     else if (strcmp(cmd, "GET_P") == 0)
     {
         float P =(float) (bmp280.cal_press)*0.001f;
         uint16_t len=0;
-        len=snprintf((char *)s_tx_buf,32, "P=%f\n\r", P);
+        len=snprintf((char *)s_tx_buf,32, "%f\n\r", P);
         HAL_UART_Transmit(&huart1, (uint8_t*)s_tx_buf, (uint16_t)len, HAL_MAX_DELAY);
     }
     else if (strncmp(cmd, "SET_K=", 6) == 0)
@@ -40,20 +40,20 @@ static void PROTO_HandleCommand(const char *cmd)
         int32_t k_raw = atoi(&cmd[6]);
         K=(float)k_raw*0.01;
         uint16_t len=0;
-        len=snprintf((char *)s_tx_buf,32, "SET_K=OK\n\r");
+        len=snprintf((char *)s_tx_buf,32, "OK\n\r");
         HAL_UART_Transmit(&huart1, (uint8_t*)s_tx_buf, (uint16_t)len, HAL_MAX_DELAY);
     }
     else if (strcmp(cmd, "GET_K") == 0)
     {
         uint16_t len=0;
-        len=snprintf((char *)s_tx_buf,32, "K=%08.5f\n\r", K);
+        len=snprintf((char *)s_tx_buf,32, "%08.5f\n\r", K);
         HAL_UART_Transmit(&huart1, (uint8_t*)s_tx_buf, (uint16_t)len, HAL_MAX_DELAY);
     }
     else if (strcmp(cmd, "GET_A") == 0)
     {
         float A = imu.mz;
         uint16_t len=0;
-        len=snprintf((char *)s_tx_buf, 32, "A=%08.4f\n\r", A);
+        len=snprintf((char *)s_tx_buf, 32, "%08.4f\n\r", A);
         HAL_UART_Transmit(&huart1, (uint8_t*)s_tx_buf, (uint16_t)len, HAL_MAX_DELAY);
     }
     else
