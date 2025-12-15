@@ -452,6 +452,8 @@ def api_welcome():
 def api_welcome_index(index):
     return jsonify({"index": index, "val": welcome[index]}), {"Content-Type": "application/json"}
 ```
+On remarque alors qu'ici nous utilisons 2 routes, une /api/welcome/ qui retournera alors la chaine de caractere welcome, et une seconde route /api/welcome/<int:index>
+qui elle permet de retourner un caractère à la position index dans la chaine de caractère index.
 
 - Traitement de l'erreur 404:
 
@@ -490,13 +492,6 @@ def page_not_found(error):
 - POST → commande moteur (vitesse, sens)
 - PUT  → calibration ou réglages
 
-### 4.4. Et encore plus fort...
-- Authentification basique ou token
-- Swagger / ReDoc (si FastAPI)
-- Accès depuis smartphone ou autre PC du réseau
-
----
-
 ## 5. TP 4 – Bus CAN
 
 ### 5.1. Pilotage du moteur
@@ -504,6 +499,76 @@ def page_not_found(error):
 - Configuration CubeMX (500 kbps ou 1 Mbps)
 - 
 - Envoi de trames pour contrôler vitesse et sens du moteur
+
+- Pour cela, nous devons regler les timing CAN afin d'obtenir très précisément 500kbps on obtient les réglages suivants:
+
+
+  <img width="833" height="466" alt="image" src="https://github.com/user-attachments/assets/1b71130b-b143-4d20-bc6d-a0cbe9e7646c" />
+
+Par la suite, nous écrivons quelques fonction basique, qui se basent sur le méthode de communication CAN qui est implémentée dans le controlleur PIC: 
+
+```c
+void StepperManualMode(StepperManualMode_t *data){
+	CAN_TxHeaderTypeDef header;
+	uint32_t mailbox;
+	header.StdId = data->header;
+	header.IDE = CAN_ID_STD;
+	header.RTR = CAN_RTR_DATA;
+	header.DLC = 3;
+
+	HAL_CAN_AddTxMessage(&hcan1, &header, data->data, &mailbox);
+}
+
+void StepperAngleMode(StepperAngleMode_t *data){
+	CAN_TxHeaderTypeDef header;
+	uint32_t mailbox;
+	header.StdId = data->header;
+	header.IDE = CAN_ID_STD;
+	header.RTR = CAN_RTR_DATA;
+	header.DLC = 2;
+
+	HAL_CAN_AddTxMessage(&hcan1, &header, data->data, &mailbox);
+}
+
+void StepperSetMode(StepperSetMode_t *data){
+	CAN_TxHeaderTypeDef header;
+	uint32_t mailbox;
+	header.StdId = data->header;
+	header.IDE = CAN_ID_STD;
+	header.RTR = CAN_RTR_DATA;
+	header.DLC = 0;
+
+	HAL_CAN_AddTxMessage(&hcan1, &header, NULL, &mailbox);
+}
+
+void SetManualData(StepperManualMode_t *mode, uint8_t rotation, uint8_t steps, uint8_t speed){
+	mode->header=0x60;
+	mode->data[0]=rotation;
+	mode->data[1]=steps;
+	mode->data[2]=speed;
+
+	StepperManualMode(mode);
+
+}
+
+void SetAngleData(StepperAngleMode_t *mode, uint8_t rotation, uint8_t steps){
+	mode->header=0x61;
+	mode->data[0]=rotation;
+	mode->data[1]=steps;
+	mode->previous_angle=rotation;
+
+	StepperAngleMode(mode);
+}
+```
+
+On a donc deux fonctions principales, une qui nous permet de mette un angle, et une autre qui nous permet de choisir un nombre de step à effectuer, nous avons donc implémenté les deux, les trames de communication can se basent sur un message id, puis 2 ou 3 données utiles qui nous ont été décrite sur le tableau ci dessous:
+
+<img width="806" height="388" alt="image" src="https://github.com/user-attachments/assets/6153e0cd-be5d-4565-85f4-41ea6f549627" />
+
+Remarque nous avons aussi une fonction setmode, qui reset la position interne, mais que nous n'utilisons pas par la suite.
+
+
+Voici le résultat du moteur tournant: 
 
 
 https://github.com/user-attachments/assets/44711b81-366f-484d-92da-8fdd8f691d40
