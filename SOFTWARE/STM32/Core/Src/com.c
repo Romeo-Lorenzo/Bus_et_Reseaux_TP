@@ -14,6 +14,8 @@ uint8_t rx_dma_buf[PROTO_UART_RX_BUF_SIZE];
 uint16_t read_idx = 0;
 uint16_t write_idx = 0;
 
+extern uint8_t actual_angle;
+
 static char s_line_buf[32];
 static uint8_t s_line_pos = 0;
 
@@ -53,7 +55,7 @@ static void PROTO_HandleCommand(const char *cmd)
     {
         float A = imu.mz;
         uint16_t len=0;
-        len=snprintf((char *)s_tx_buf, 32, "%08.4f\n\r", A);
+        len=snprintf((char *)s_tx_buf, 32, "%0.2f\n\r",(float) actual_angle * 180.0f/255.0f);
         HAL_UART_Transmit(&huart1, (uint8_t*)s_tx_buf, (uint16_t)len, HAL_MAX_DELAY);
     }
     else

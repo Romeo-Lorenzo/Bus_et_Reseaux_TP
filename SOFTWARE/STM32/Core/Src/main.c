@@ -58,6 +58,8 @@ extern uint8_t rx_dma_buf[PROTO_UART_RX_BUF_SIZE];
 
 float K=0.8;
 
+uint8_t actual_angle=0;
+
 StepperManualMode_t stepper_manual;
 StepperAngleMode_t stepper_angle;
 StepperSetMode_t stepper_set;
@@ -86,6 +88,8 @@ static void update_motor_from_temp(StepperAngleMode_t *mode,BMP280_HandleTypeDef
 	if(new_angle<=0){
 		new_angle=0;
 	}
+
+	actual_angle=new_angle;
 
 
 
