@@ -98,20 +98,11 @@ BMP2_U32_t bmp280_compensate_P_int64(BMP2_S32_t adc_P)
 
 
 ### 2.2. Setup du STM32
-- Configuration CubeMX (I2C1 sur broches PB8 et PB9)
+- Configuration CubeMX (I2C1 sur broches PB8 et PB9 mais qui ont été changé par la suite à cause du CAN tx et rx)
 - Ecriture d'un Driver I2C pour BMP280:
-   
-```c
-
-caca
-
-```
-- Vérification des broches (oscilloscope/logic analyzer)
-
 ### 2.3. Communication I²C
 - Écriture/lecture simple d’un registre
 Lecture du registre id: 0xD0
-   
 ```c
 
   uint8_t result;
@@ -573,15 +564,49 @@ Voici le résultat du moteur tournant:
 
 https://github.com/user-attachments/assets/44711b81-366f-484d-92da-8fdd8f691d40
 
+Ici, le code demande au moteur de faire le nombre de tick correspondant à 90° à chaque démarrage de la stm32, l'appuie sur le bouton reset permet donc de redémarré le code et de redemander 90° de nouveau, ce code très simple à pour le mérite de montrer le fonctionnement de notre driver.
 
 ### 5.2. Interfaçage avec le capteur
-- Deux cartes STM32 communicant en CAN
-- Une carte lit le BMP280 et envoie les données toutes les 500 ms
-- L’autre carte reçoit et affiche sur UART ou pilote le moteur en fonction de la pression
 
-> **Capture** : Analyseur CAN (Peak-Can, Saleae, etc.)
+Nous interfacons ici le capteur de température avec le moteur par CAN, pour cela on récupère la température, du bmp280, puis on y applique un petit correcteur proportionnel et on sors la nouvelle valeurs d'angle voulu en fonction de la différence entre la température actuelle et la précédente: 
 
----
+```c
+static void update_motor_from_temp(StepperAngleMode_t *mode,BMP280_HandleTypeDef * bmp280){
+	mode->init_angle=0x7F;
+
+	int temp_div=0;
+	if(bmp280->prevous_temp!=0){
+		temp_div=bmp280->cal_temp-bmp280->prevous_temp;
+	}
+	int delta=fabs(floorf(temp_div*K)) ;
+	int16_t new_angle=0;
+	if(temp_div>=0){
+		new_angle=mode->previous_angle + delta;
+
+	}else{
+
+		new_angle=mode->previous_angle-delta;
+
+	}
+	if(new_angle>=0xFF){
+		new_angle=0xFF;
+	}
+	if(new_angle<=0){
+		new_angle=0;
+	}
+
+
+
+	SetAngleData(&stepper_angle,(uint8_t *) new_angle, 0x01);
+
+	bmp280->prevous_temp=bmp280->cal_temp;
+}
+```
+
+On obtient alors un systeme ou la position du moteur dépend de la température sur le capteur le résultat donne: 
+
+
+
 
 ## 6. TP 5 – Intégration I²C - Serial - REST - CAN
 
