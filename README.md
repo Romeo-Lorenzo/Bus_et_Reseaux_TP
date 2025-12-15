@@ -607,6 +607,10 @@ On obtient alors un systeme ou la position du moteur dépend de la température 
 
 
 
+https://github.com/user-attachments/assets/8550f2de-22ac-4663-8aeb-bd983b510696
+
+
+
 
 ## 6. TP 5 – Intégration I²C - Serial - REST - CAN
 
