@@ -98,20 +98,11 @@ BMP2_U32_t bmp280_compensate_P_int64(BMP2_S32_t adc_P)
 
 
 ### 2.2. Setup du STM32
-- Configuration CubeMX (I2C1 sur broches PB8 et PB9)
+- Configuration CubeMX (I2C1 sur broches PB8 et PB9 mais qui ont été changé par la suite à cause du CAN tx et rx)
 - Ecriture d'un Driver I2C pour BMP280:
-   
-```c
-
-caca
-
-```
-- Vérification des broches (oscilloscope/logic analyzer)
-
 ### 2.3. Communication I²C
 - Écriture/lecture simple d’un registre
 Lecture du registre id: 0xD0
-   
 ```c
 
   uint8_t result;
@@ -452,6 +443,8 @@ def api_welcome():
 def api_welcome_index(index):
     return jsonify({"index": index, "val": welcome[index]}), {"Content-Type": "application/json"}
 ```
+On remarque alors qu'ici nous utilisons 2 routes, une /api/welcome/ qui retournera alors la chaine de caractere welcome, et une seconde route /api/welcome/<int:index>
+qui elle permet de retourner un caractère à la position index dans la chaine de caractère index.
 
 - Traitement de l'erreur 404:
 
@@ -490,13 +483,6 @@ def page_not_found(error):
 - POST → commande moteur (vitesse, sens)
 - PUT  → calibration ou réglages
 
-### 4.4. Et encore plus fort...
-- Authentification basique ou token
-- Swagger / ReDoc (si FastAPI)
-- Accès depuis smartphone ou autre PC du réseau
-
----
-
 ## 5. TP 4 – Bus CAN
 
 ### 5.1. Pilotage du moteur
@@ -505,18 +491,122 @@ def page_not_found(error):
 - 
 - Envoi de trames pour contrôler vitesse et sens du moteur
 
+- Pour cela, nous devons regler les timing CAN afin d'obtenir très précisément 500kbps on obtient les réglages suivants:
+
+
+  <img width="833" height="466" alt="image" src="https://github.com/user-attachments/assets/1b71130b-b143-4d20-bc6d-a0cbe9e7646c" />
+
+Par la suite, nous écrivons quelques fonction basique, qui se basent sur le méthode de communication CAN qui est implémentée dans le controlleur PIC: 
+
+```c
+void StepperManualMode(StepperManualMode_t *data){
+	CAN_TxHeaderTypeDef header;
+	uint32_t mailbox;
+	header.StdId = data->header;
+	header.IDE = CAN_ID_STD;
+	header.RTR = CAN_RTR_DATA;
+	header.DLC = 3;
+
+	HAL_CAN_AddTxMessage(&hcan1, &header, data->data, &mailbox);
+}
+
+void StepperAngleMode(StepperAngleMode_t *data){
+	CAN_TxHeaderTypeDef header;
+	uint32_t mailbox;
+	header.StdId = data->header;
+	header.IDE = CAN_ID_STD;
+	header.RTR = CAN_RTR_DATA;
+	header.DLC = 2;
+
+	HAL_CAN_AddTxMessage(&hcan1, &header, data->data, &mailbox);
+}
+
+void StepperSetMode(StepperSetMode_t *data){
+	CAN_TxHeaderTypeDef header;
+	uint32_t mailbox;
+	header.StdId = data->header;
+	header.IDE = CAN_ID_STD;
+	header.RTR = CAN_RTR_DATA;
+	header.DLC = 0;
+
+	HAL_CAN_AddTxMessage(&hcan1, &header, NULL, &mailbox);
+}
+
+void SetManualData(StepperManualMode_t *mode, uint8_t rotation, uint8_t steps, uint8_t speed){
+	mode->header=0x60;
+	mode->data[0]=rotation;
+	mode->data[1]=steps;
+	mode->data[2]=speed;
+
+	StepperManualMode(mode);
+
+}
+
+void SetAngleData(StepperAngleMode_t *mode, uint8_t rotation, uint8_t steps){
+	mode->header=0x61;
+	mode->data[0]=rotation;
+	mode->data[1]=steps;
+	mode->previous_angle=rotation;
+
+	StepperAngleMode(mode);
+}
+```
+
+On a donc deux fonctions principales, une qui nous permet de mette un angle, et une autre qui nous permet de choisir un nombre de step à effectuer, nous avons donc implémenté les deux, les trames de communication can se basent sur un message id, puis 2 ou 3 données utiles qui nous ont été décrite sur le tableau ci dessous:
+
+<img width="806" height="388" alt="image" src="https://github.com/user-attachments/assets/6153e0cd-be5d-4565-85f4-41ea6f549627" />
+
+Remarque nous avons aussi une fonction setmode, qui reset la position interne, mais que nous n'utilisons pas par la suite.
+
+
+Voici le résultat du moteur tournant: 
+
 
 https://github.com/user-attachments/assets/44711b81-366f-484d-92da-8fdd8f691d40
 
+Ici, le code demande au moteur de faire le nombre de tick correspondant à 90° à chaque démarrage de la stm32, l'appuie sur le bouton reset permet donc de redémarré le code et de redemander 90° de nouveau, ce code très simple à pour le mérite de montrer le fonctionnement de notre driver.
 
 ### 5.2. Interfaçage avec le capteur
-- Deux cartes STM32 communicant en CAN
-- Une carte lit le BMP280 et envoie les données toutes les 500 ms
-- L’autre carte reçoit et affiche sur UART ou pilote le moteur en fonction de la pression
 
-> **Capture** : Analyseur CAN (Peak-Can, Saleae, etc.)
+Nous interfacons ici le capteur de température avec le moteur par CAN, pour cela on récupère la température, du bmp280, puis on y applique un petit correcteur proportionnel et on sors la nouvelle valeurs d'angle voulu en fonction de la différence entre la température actuelle et la précédente: 
 
----
+```c
+static void update_motor_from_temp(StepperAngleMode_t *mode,BMP280_HandleTypeDef * bmp280){
+	mode->init_angle=0x7F;
+
+	int temp_div=0;
+	if(bmp280->prevous_temp!=0){
+		temp_div=bmp280->cal_temp-bmp280->prevous_temp;
+	}
+	int delta=fabs(floorf(temp_div*K)) ;
+	int16_t new_angle=0;
+	if(temp_div>=0){
+		new_angle=mode->previous_angle + delta;
+
+	}else{
+
+		new_angle=mode->previous_angle-delta;
+
+	}
+	if(new_angle>=0xFF){
+		new_angle=0xFF;
+	}
+	if(new_angle<=0){
+		new_angle=0;
+	}
+
+
+
+	SetAngleData(&stepper_angle,(uint8_t *) new_angle, 0x01);
+
+	bmp280->prevous_temp=bmp280->cal_temp;
+}
+```
+
+On obtient alors un systeme ou la position du moteur dépend de la température sur le capteur le résultat donne: 
+
+
+
 
 ## 6. TP 5 – Intégration I²C - Serial - REST - CAN
 
